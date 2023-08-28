@@ -17,7 +17,7 @@ Usage:
   python 03-incrementalRegistration.py grey.tif mask.tif
 """
 
-step = 40
+step = 20
 
 import sys
 import numpy
@@ -34,7 +34,7 @@ mask = tifffile.imread(sys.argv[2])
 assert im.shape[0] == mask.shape[0], "Images and Mask have different time-lengths!"
 
 imStep = im[::step]
-maskStep = mask[::step] # HACK!
+maskStep = mask[::step]
 
 
 PhisIncrementalStep = numpy.zeros((imStep.shape[0],4,4))
@@ -53,6 +53,7 @@ for t in tqdm(range(1,imStep.shape[0])):
         im1mask=maskStep[t],
         imShowProgress=0,
         verbose=0,
+        returnPhiMaskCentre=False,
         maxIterations=150,
         PhiRigid=True
     )
@@ -67,10 +68,6 @@ print(numpy.unique(RSsStep, return_counts=True))
 print(f"2/2: Adding up increments into a total motion and applying it to all timesteps")
 PhisIncrementalStep[0] = numpy.eye(4)
 PhiCurrent = numpy.eye(4)
-#Rots = numpy.zeros(imStep.shape[0])
-#TransYX = numpy.zeros((imStep.shape[0], 2))
-PhisTotal = numpy.zeros((im.shape[0],4,4))
-
 imOut = numpy.zeros_like(im)
 
 
@@ -93,26 +90,6 @@ for T in tqdm(range(0,imStep.shape[0])):
             PhiCurrentInterp = numpy.dot(PhiCurrent, PhiTemp)
             imOut[globalTimeIndex] = spam.DIC.applyPhiPython(im[globalTimeIndex], Phi=PhiCurrentInterp)
 
-    #PhiCurrentDecomp = spam.deformation.decomposePhi(PhiCurrent)
-    #print(f"t={PhiCurrentDecomp['t'][1:3]}, r={PhiCurrentDecomp['r'][0]}")
     PhiCurrent = numpy.dot(PhiCurrent, PhisIncrementalStep[T])
 
-tifffile.imwrite(f"{sys.argv[1][0:-4]}-registered.tif", imOut)
-
-################################################################
-### Step 3: Upscale and apply to ALL timesteps
-################################################################
-#print(f"3/3: Interpolating motion and applying to whole timeseries")
-
-##Rots = scipy.ndimage.zoom(Rots, step, order=1)
-##TransYX = scipy.ndimage.zoom(TransYX, step, order=1)
-
-#imOut = numpy.zeros_like(im)
-#for t in tqdm(range(0,im.shape[0])):
-    #Phi = spam.deformation.computePhi(
-        #{
-            #'t': [0, TransYX[t,0], TransYX[t,1]],
-            #'r': [Rots[t], 0, 0]
-        #}
-    #)
-    #imOut[t] = spam.DIC.applyPhiPython(im[t], Phi=Phi)
+tifffile.imwrite(f"{sys.argv[1][0:-4]}-registered-{step}step.tif", imOut)
