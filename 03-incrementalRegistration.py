@@ -18,7 +18,7 @@ Usage:
   python 03-incrementalRegistration.py grey.tif mask.tif
 """
 
-step = 40
+step = 20
 
 import sys
 import numpy
@@ -28,13 +28,8 @@ import tifffile
 import os.path
 import scipy.interpolate
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
-import matplotlib
-font = {'family' : '',
-        'weight' : 'normal',
-        'size'   : 12}
-matplotlib.rc('font', **font)
+GRAPH=0
 
 # Load 2D timeseries
 im = tifffile.imread(sys.argv[1])
@@ -95,20 +90,6 @@ else:
     numpy.save(PhisTotalStepName, PhisTotalStep)
 
 
-#translationTotalStepSpline = scipy.interpolate.
-plt.plot(
-    numpy.arange(PhisTotalStep.shape[0])*step,
-    PhisTotalStep[:,1,-1],
-    'rx',
-    label='y-disp'
-)
-plt.plot(
-    numpy.arange(PhisTotalStep.shape[0])*step,
-    PhisTotalStep[:,2,-1],
-    'bx',
-    label='x-disp'
-)
-
 # Create and initialise PhisTotal
 PhisTotal = numpy.zeros((im.shape[0], 4, 4))
 for T in range(PhisTotal.shape[0]):
@@ -126,29 +107,53 @@ coordinatesInitial[2, :] = coordinates_mgrid[2].ravel()
 PhisTotal = scipy.ndimage.map_coordinates(
     PhisTotalStep,
     coordinatesInitial,
-    order=1,
+    order=3,
     mode='nearest',
 ).reshape(-1,4,4)
 
-print(PhisTotal[step*PhisTotalStep.shape[0]//2])
-print(PhisTotalStep[PhisTotalStep.shape[0]//2])
+# Impose 2D consistancy that might have numerical noise due to interpolation
+PhisTotal[:,0,:]  = [1,0,0,0]
+PhisTotal[:,:,0]  = [1,0,0,0]
+PhisTotal[:,-1,:] = [0,0,0,1]
 
-plt.plot(
-    numpy.arange(PhisTotal.shape[0]),
-    PhisTotal[:,1,-1],
-    'r-',
-    label='y-disp interp'
-)
-plt.plot(
-    numpy.arange(PhisTotal.shape[0]),
-    PhisTotal[:,2,-1],
-    'b-',
-    label='x-disp interp'
-)
-plt.xlabel(f'time')
-plt.ylabel('px displacement')
-plt.legend()
-plt.show()
+if GRAPH:
+    import matplotlib.pyplot as plt
+
+    import matplotlib
+    font = {'family' : '',
+            'weight' : 'normal',
+            'size'   : 12}
+    matplotlib.rc('font', **font)
+
+    plt.plot(
+        numpy.arange(PhisTotalStep.shape[0])*step,
+        PhisTotalStep[:,1,-1],
+        'rx',
+        label='y-disp'
+    )
+    plt.plot(
+        numpy.arange(PhisTotalStep.shape[0])*step,
+        PhisTotalStep[:,2,-1],
+        'bx',
+        label='x-disp'
+    )
+
+    plt.plot(
+        numpy.arange(PhisTotal.shape[0]),
+        PhisTotal[:,1,-1],
+        'r-',
+        label='y-disp interp'
+    )
+    plt.plot(
+        numpy.arange(PhisTotal.shape[0]),
+        PhisTotal[:,2,-1],
+        'b-',
+        label='x-disp interp'
+    )
+    plt.xlabel(f'time')
+    plt.ylabel('px displacement')
+    plt.legend()
+    plt.show()
 
 ###############################################################
 ## Step 3: apply to whole-time-series
@@ -157,6 +162,6 @@ print(f"3/3: Applying to all time steps")
 imOut = numpy.zeros_like(im)
 # Loop over steps
 for t in tqdm(range(0,im.shape[0])):
-    imOut[t] = spam.DIC.applyPhiPython(im[t], Phi=PhisTotal[t])
+    imOut[t] = spam.DIC.applyPhiPython(im[t], Phi=PhisTotal[t], interpolationOrder=1)
 
 tifffile.imwrite(f"{sys.argv[1][0:-4]}-registered-step{step}.tif", imOut)
