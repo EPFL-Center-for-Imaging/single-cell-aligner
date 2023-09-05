@@ -47,15 +47,14 @@ imStep = im[::step]
 maskStep = mask[::step]
 
 PhisTotalStepName = f"{sys.argv[1][0:-4]}-PhisTotal-step{step}.npy"
-PhisIncrementalStepName = f"{sys.argv[1][0:-4]}-PhisIncremental-step{step}.npy"
 
 PhisIncrementalStep = numpy.zeros((imStep.shape[0],4,4))
 RSsStep = numpy.zeros(imStep.shape[0])
 
 #if os.path.isfile(PhisTotalStepName) and os.path.isfile(PhisIncrementalStepName):
 if os.path.isfile(PhisTotalStepName):
+    print(f"Found previous 'PhiTotal' numpy array: {PhisTotalStepName} reloading it and skipping correlation...\n")
     PhisTotalStep = numpy.load(PhisTotalStepName)
-    #PhisIncrementalStep = numpy.load(PhisIncrementalStepName)
 
 else:
     ###############################################################
@@ -94,77 +93,62 @@ else:
         PhisTotalStep[T] = PhiCurrent
 
     numpy.save(PhisTotalStepName, PhisTotalStep)
-    numpy.save(PhisIncrementalStepName, PhisIncrementalStep)
 
 
 #translationTotalStepSpline = scipy.interpolate.
 plt.plot(
     numpy.arange(PhisTotalStep.shape[0])*step,
     PhisTotalStep[:,1,-1],
-    'x-',
+    'rx',
     label='y-disp'
 )
 plt.plot(
     numpy.arange(PhisTotalStep.shape[0])*step,
     PhisTotalStep[:,2,-1],
-    'x-',
+    'bx',
     label='x-disp'
 )
-plt.xlabel(f'time (steps of {step})')
-plt.ylabel('px displacement')
-plt.legend()
-#plt.show()
 
 # Create and initialise PhisTotal
 PhisTotal = numpy.zeros((im.shape[0], 4, 4))
 for T in range(PhisTotal.shape[0]):
     PhisTotal[T] = numpy.eye(4)
 
-# Set up splines on raw Phi components?
-# Curvilinear coordinates are [0, 1] in the STEP basis, careful!
-tck, _ = scipy.interpolate.splprep(
-    [
-        PhisTotalStep[:, 1, 1],
-        PhisTotalStep[:, 1, 2],
-        PhisTotalStep[:, 1, 3],
-        PhisTotalStep[:, 2, 1],
-        PhisTotalStep[:, 2, 2],
-        PhisTotalStep[:, 2, 3],
-    ],
-    s=10,
-    k=3,
-)
+### Interpolate a value of PhiTotal for each PhiTotalStep
+coordinatesInitial = numpy.ones((3, 4*4*im.shape[0]), dtype="<f4")
+coordinates_mgrid = numpy.mgrid[0 : im.shape[0], 0 : 4, 0 : 4]
 
-# What does the time range [0, 1] for the spline (well really just the one)
-#   correspond to in the global?
-# t = 1 means "step" time of imStep.shape[0]-1 which is a real time of step*(imStep.shape[0]-1)
-splineTimes = numpy.arange(0, im.shape[0])/(step*(imStep.shape[0]-1))
+# Copy into coordinatesInitial
+coordinatesInitial[0, :] = coordinates_mgrid[0].ravel()/step
+coordinatesInitial[1, :] = coordinates_mgrid[1].ravel()
+coordinatesInitial[2, :] = coordinates_mgrid[2].ravel()
 
-interpolatedPhiTotal = scipy.interpolate.splev(splineTimes, tck)
-PhisTotal[:, 1, 1] = interpolatedPhiTotal[0]
-PhisTotal[:, 1, 2] = interpolatedPhiTotal[1]
-PhisTotal[:, 1, 3] = interpolatedPhiTotal[2]
-PhisTotal[:, 2, 1] = interpolatedPhiTotal[3]
-PhisTotal[:, 2, 2] = interpolatedPhiTotal[4]
-PhisTotal[:, 2, 3] = interpolatedPhiTotal[5]
+PhisTotal = scipy.ndimage.map_coordinates(
+    PhisTotalStep,
+    coordinatesInitial,
+    order=1,
+    mode='nearest',
+).reshape(-1,4,4)
+
+print(PhisTotal[step*PhisTotalStep.shape[0]//2])
+print(PhisTotalStep[PhisTotalStep.shape[0]//2])
 
 plt.plot(
-    splineTimes*(step*(imStep.shape[0]-1)),
+    numpy.arange(PhisTotal.shape[0]),
     PhisTotal[:,1,-1],
-    '-',
-    label='y-disp (interp)'
+    'r-',
+    label='y-disp interp'
 )
 plt.plot(
-    splineTimes*(step*(imStep.shape[0]-1)),
+    numpy.arange(PhisTotal.shape[0]),
     PhisTotal[:,2,-1],
-    '-',
-    label='x-disp (interp)'
+    'b-',
+    label='x-disp interp'
 )
+plt.xlabel(f'time')
+plt.ylabel('px displacement')
+plt.legend()
 plt.show()
-
-#exit()
-
-
 
 ###############################################################
 ## Step 3: apply to whole-time-series
@@ -173,25 +157,6 @@ print(f"3/3: Applying to all time steps")
 imOut = numpy.zeros_like(im)
 # Loop over steps
 for t in tqdm(range(0,im.shape[0])):
-    #PhiIncrementDecomp = spam.deformation.decomposePhi(PhisIncrementalStep[T])
-    ## Loop inside steps to gradually apply the measured motion
-    #for t in range(step):
-        #globalTimeIndex = step*T+t
-        #if globalTimeIndex >= im.shape[0]:
-            #break
-        #else:
-            #scale = ((t+1)/step)
-            #PhiTemp = spam.deformation.computePhi(
-            #{
-                #'t': [0, PhiIncrementDecomp['t'][0]*scale, PhiIncrementDecomp['t'][1]*scale],
-                #'r': [PhiIncrementDecomp['r'][0]*scale, 0, 0]
-            #}
-            #)
-            #PhiCurrentInterp = numpy.dot(PhiCurrent, PhiTemp)
-            #imOut[globalTimeIndex] = spam.DIC.applyPhiPython(im[globalTimeIndex], Phi=PhiCurrentInterp)
-
-    #PhiCurrent = numpy.dot(PhiCurrent, PhisIncrementalStep[T])
     imOut[t] = spam.DIC.applyPhiPython(im[t], Phi=PhisTotal[t])
 
-
-tifffile.imwrite(f"{sys.argv[1][0:-4]}-registered-{step}step.tif", imOut)
+tifffile.imwrite(f"{sys.argv[1][0:-4]}-registered-step{step}.tif", imOut)
