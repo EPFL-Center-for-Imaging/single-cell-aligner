@@ -24,6 +24,7 @@ grey = tifffile.imread(greyFile)
 mask = tifffile.imread(maskFile) > 0
 
 greyOut = numpy.zeros((grey.shape[0], squareSize, squareSize), dtype=grey.dtype)
+maskOut = numpy.zeros((grey.shape[0], squareSize, squareSize), dtype=mask.dtype)
 
 for t in tqdm(range(grey.shape[0])):
     COMyx = numpy.round(scipy.ndimage.center_of_mass(mask[t])).astype(int)
@@ -33,5 +34,10 @@ for t in tqdm(range(grey.shape[0])):
         grey[t][numpy.newaxis, ...],
         [0, 1, COMyx[0]-squareHalfSize, COMyx[0]+squareHalfSize+1, COMyx[1]-squareHalfSize, COMyx[1]+squareHalfSize+1]
     )[0]
+    maskOut[t] = spam.helpers.slicePadded(
+        mask[t][numpy.newaxis, ...],
+        [0, 1, COMyx[0]-squareHalfSize, COMyx[0]+squareHalfSize+1, COMyx[1]-squareHalfSize, COMyx[1]+squareHalfSize+1]
+    )[0]
 
 tifffile.imwrite(f"{greyFile[0:-4]}-cropped.tif", greyOut)
+tifffile.imwrite(f"{greyFile[0:-4]}-mask-cropped.tif", maskOut)
