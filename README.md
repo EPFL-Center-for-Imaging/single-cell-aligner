@@ -1,6 +1,7 @@
-# Single Cell Aligner - EPFL Center for Imaging
+![EPFL Center for Imaging logo](images/logo-center-for-imaging.svg)
 
-![EPFL Center for Imaging logo](https://imaging.epfl.ch/analysis_projects/resources/assets/logo.svg)
+# Single Cell Aligner
+Developed by the [EPFL Center for Imaging](https://imaging.epfl.ch) for the [Living Patterns Laboratory](https://www.epfl.ch/labs/lpl/) in Sept 2023
 
 ## Alignment of high-freq images of a single cell image
 Code to try to align images of a fast-moving cell with metachronal waves.
@@ -10,7 +11,12 @@ First make a mask (gaussian filter and threshold?) and use `02-maskCropping.py`
 
 Then use `03-incrementalRegistration.py` to compute incremental registrations
 
+<!--## Example result
+<video width="320" height="240" controls>
+  <source src="images/illustration.webm" type="video/webm">
+</video>-->
+
 ## Authors
-  - Edward Andò EPFL Center for Imaging
-  - Daphne Laan EPFL Living Patterns Laboratory
-  - Merih Ekin Özberk EPFL Living Patterns Laboratory
+  - Edward Andò [EPFL Center for Imaging](https://imaging.epfl.ch)
+  - Daphne Laan [EPFL Living Patterns Laboratory](https://www.epfl.ch/labs/lpl/)
+  - Merih Ekin Özberk [EPFL Living Patterns Laboratory](https://www.epfl.ch/labs/lpl/)
