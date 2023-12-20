@@ -13,10 +13,10 @@ First make a mask (gaussian filter and threshold?) and use `02-maskCropping.py`
 
 Then use `03-incrementalRegistration.py` to compute incremental registrations
 
-<!--## Example result
+## Example result
 <video width="320" height="240" controls>
   <source src="images/illustration.webm" type="video/webm">
-</video>-->
+</video>
 
 ## Authors
   - Edward Andò [EPFL Center for Imaging](https://imaging.epfl.ch)
