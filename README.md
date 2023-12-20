@@ -1,7 +1,9 @@
-![EPFL Center for Imaging logo](images/logo-center-for-imaging.svg)
+![EPFL Center for Imaging logo](https://imaging.epfl.ch/resources/logo-for-gitlab.svg)
 
 # Single Cell Aligner
 Developed by the [EPFL Center for Imaging](https://imaging.epfl.ch) for the [Living Patterns Laboratory](https://www.epfl.ch/labs/lpl/) in Sept 2023
+
+We helped the LPL register... in order to...
 
 ## Alignment of high-freq images of a single cell image
 Code to try to align images of a fast-moving cell with metachronal waves.
