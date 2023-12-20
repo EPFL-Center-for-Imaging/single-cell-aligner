@@ -19,9 +19,6 @@ Usage:
 """
 
 step = 20
-GRAPH=1
-PHI_TIME_FILTER = 0
-
 
 import sys
 import numpy
@@ -31,6 +28,8 @@ import tifffile
 import os.path
 import scipy.interpolate
 from tqdm import tqdm
+
+GRAPH=0
 
 # Load 2D timeseries
 im = tifffile.imread(sys.argv[1])
@@ -63,9 +62,8 @@ else:
             imStep[T],
             imStep[T-1],
             im1mask=maskStep[T],
-            # imShowProgress=1,
-            # verbose=1,
-            updateGradient=1,
+            imShowProgress=0,
+            verbose=0,
             returnPhiMaskCentre=False,
             maxIterations=150,
             PhiRigid=True
@@ -90,14 +88,6 @@ else:
         PhisTotalStep[T] = PhiCurrent
 
     numpy.save(PhisTotalStepName, PhisTotalStep)
-
-
-## We could filter the Phis down the time axis?
-if PHI_TIME_FILTER > 0:
-    PhisTotalStep = scipy.ndimage.gaussian_filter(
-        PhisTotalStep,
-        sigma=(PHI_TIME_FILTER,0,0)
-    )
 
 
 # Create and initialise PhisTotal
